@@ -19,11 +19,27 @@ export class AppService {
   }
 
   async exportToGoogleSheet(): Promise<void> {
-    const response = await axios.get(`${this.apiUrl}/clients`, {
-      headers: { Authorization: this.token }
-    });
+      const limit = 1000;
+      let offset = 0;
+      const allRecords = [];
+    
+        while (true) {
+          const response = await axios.get(`${this.apiUrl}/clients`, {
+            params: { limit, offset },
+            headers: { Authorization: this.token }
+          });
+    
+          const records = response.data;
+          allRecords.push(...records);
 
-    const clients = response.data
+          console.log(records)
+    
+          if (records.length < limit) {
+            break;
+          } else {
+            offset += limit;
+          }
+        }
 
       const auth = new google.auth.GoogleAuth({
         keyFile: 'A:/OneDrive/Desktop/2/project/src/prime-keel-442313-e8-50badbff46c6.json',
@@ -35,7 +51,10 @@ export class AppService {
 
       const values = [
         ['ID', 'First Name', 'Last Name', 'Gender', 'Address', 'City', 'Phone', 'Email'],
-        ...clients.map((client) => [
+      ];
+
+      for (const client of allRecords) {
+        values.push([
           client.id,
           client.firstName,
           client.lastName,
@@ -44,8 +63,8 @@ export class AppService {
           client.city,
           client.phone,
           client.email,
-        ]),
-      ];
+        ]);
+      }
 
       await sheets.spreadsheets.values.update({
         spreadsheetId,
